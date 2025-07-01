@@ -1,19 +1,22 @@
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11
 
-COPY fastapi_app/requirements.txt /tmp/
+WORKDIR /app
+
+
+COPY fastapi_app/requirements.txt .
 
 # install requirements
 RUN python -m pip install --upgrade pip
-RUN pip install -r /tmp/requirements.txt
+RUN pip install -r requirements.txt
 RUN pip install gunicorn
 
-COPY fastapi_app/ /fastapi_app
+COPY . .
 
 # avoid running as root user
-RUN useradd --create-home appuser
-RUN chown -R appuser /fastapi_app
+RUN useradd --create-home appuser \
+ && chown -R appuser /app
 USER appuser
-WORKDIR /fastapi_app
+
 
 # expose the app port
 EXPOSE 5001

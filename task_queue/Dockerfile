@@ -5,19 +5,19 @@ RUN apt-get update && \
     apt-get install coinor-cbc -y && \
     apt-get install graphviz -y
 
-COPY task_queue/requirements.txt /tmp/
+WORKDIR /app
 
-RUN python -m pip install --upgrade pip
-RUN pip install -r /tmp/requirements.txt
+COPY task_queue/requirements.txt .
 
-run echo $(pip freeze)
-COPY . /queue
+RUN pip install --upgrade pip \
+ && pip install -r requirements.txt
 
-# avoid running as root user
-RUN useradd --create-home appuser
-RUN chown -R appuser /queue
+COPY . .
+
+RUN useradd --create-home appuser \
+ && chown -R appuser /app
 USER appuser
 
-WORKDIR /queue
+ENV CELERY_TASK_NAME=default
 
 ENTRYPOINT celery -A task_queue.tasks worker --loglevel=info --queues=${CELERY_TASK_NAME}
