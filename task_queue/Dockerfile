@@ -5,14 +5,11 @@ RUN apt-get update && \
     apt-get install coinor-cbc -y && \
     apt-get install graphviz -y
 
+COPY . /app
 WORKDIR /app
-
-COPY task_queue/requirements.txt .
 
 RUN pip install --upgrade pip \
  && pip install -r requirements.txt
-
-COPY . .
 
 RUN useradd --create-home appuser \
  && chown -R appuser /app

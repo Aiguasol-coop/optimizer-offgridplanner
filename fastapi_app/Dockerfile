@@ -1,16 +1,12 @@
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11
 
+COPY . /app
 WORKDIR /app
-
-
-COPY fastapi_app/requirements.txt .
 
 # install requirements
 RUN python -m pip install --upgrade pip
 RUN pip install -r requirements.txt
 RUN pip install gunicorn
-
-COPY . .
 
 # avoid running as root user
 RUN useradd --create-home appuser \
