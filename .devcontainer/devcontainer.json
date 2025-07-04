@@ -1,0 +1,21 @@
+{
+    "name": "optimizer-offgridplanner-dev",
+    "dockerComposeFile": [
+        "docker-compose.yml"
+    ],
+    "service": "web",
+    "workspaceFolder": "/workspaces/optimizer-offgridplanner",
+    "runServices": [
+        "redis",
+        "web",
+        "worker-supply",
+        "worker-grid"
+    ],
+    "shutdownAction": "stopCompose",
+    "forwardPorts": [
+        5001
+    ],
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    }
+}
