@@ -5,7 +5,7 @@ RUN apt-get update && \
     apt-get install coinor-cbc -y && \
     apt-get install graphviz -y
 
-COPY . /app
+COPY ./task_queue /app
 WORKDIR /app
 
 RUN pip install --upgrade pip \
@@ -17,4 +17,4 @@ USER appuser
 
 ENV CELERY_TASK_NAME=default
 
-ENTRYPOINT celery -A task_queue.tasks worker --loglevel=info --queues=${CELERY_TASK_NAME}
+ENTRYPOINT celery -A tasks worker --loglevel=info --queues=${CELERY_TASK_NAME}

@@ -1,0 +1,6 @@
+name: dec-potential-optimizer-chart
+description: Chart to deploy dec potential optimizer engine
+version: 0.0.1
+apiVersion: v1
+sources:
+  - https://github.com/Aiguasol-coop/optimizer-offgridplanner
