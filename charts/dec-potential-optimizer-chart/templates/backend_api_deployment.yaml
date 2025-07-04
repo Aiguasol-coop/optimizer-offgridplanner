@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.project.name }}-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.project.name }}-api
+  template:
+    metadata:
+      annotations:
+        redeploy-timestamp: "{{ .Values.forceRedeploy }}"
+      labels:
+        app: {{ .Values.project.name }}-api
+    spec:
+      initContainers:
+        - name: {{ .Values.project.name }}-wait-for-redis
+          image: busybox:1.34
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for redis..."
+              until nc -z redis 6379; do
+                sleep 1
+              done
+              echo "Redis is up!"
+      containers:
+        - name: {{ .Values.project.name }}-api
+          image: {{ .Values.api.image.repository }}:{{ .Values.api.image.tag}}
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.api.port }}}
+          env:
+            - name: CELERY_BROKER_URL
+              value: {{ .Values.api.CELERY_BROKER_URL }}
+            - name: CELERY_RESULT_BACKEND
+              value: {{ .Values.api.CELERY_RESULT_BACKEND }}
