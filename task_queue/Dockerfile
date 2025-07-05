@@ -5,7 +5,7 @@ RUN apt-get update && \
     apt-get install coinor-cbc -y && \
     apt-get install graphviz -y
 
-COPY ./task_queue /app
+COPY . /app
 WORKDIR /app
 
 RUN pip install --upgrade pip \

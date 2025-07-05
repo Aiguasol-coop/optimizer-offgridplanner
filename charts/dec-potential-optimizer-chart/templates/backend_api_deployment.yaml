@@ -22,7 +22,7 @@ spec:
             - -c
             - |
               echo "Waiting for redis..."
-              until nc -z redis 6379; do
+              until nc -z potential-optimizer-redis 6379; do
                 sleep 1
               done
               echo "Redis is up!"
@@ -31,9 +31,12 @@ spec:
           image: {{ .Values.api.image.repository }}:{{ .Values.api.image.tag}}
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
           ports:
-            - containerPort: {{ .Values.api.port }}}
+            - containerPort: {{ .Values.api.port | int }}
           env:
             - name: CELERY_BROKER_URL
               value: {{ .Values.api.CELERY_BROKER_URL }}
             - name: CELERY_RESULT_BACKEND
               value: {{ .Values.api.CELERY_RESULT_BACKEND }}
+      imagePullSecrets:
+        - name: docker-registry-login
+      restartPolicy: Always

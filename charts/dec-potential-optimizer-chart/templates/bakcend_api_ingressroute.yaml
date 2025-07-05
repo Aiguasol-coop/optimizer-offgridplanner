@@ -19,6 +19,8 @@ spec:
     kind: Rule
     services:
     - name: {{ .Values.project.name }}-api
-      port: {{ .Values.backend.port | int }}
+      port: {{ .Values.api.port | int }}
     middlewares:
       - name: {{ .Values.project.name }}-api-stripprefix
+  tls:
+   certResolver: default

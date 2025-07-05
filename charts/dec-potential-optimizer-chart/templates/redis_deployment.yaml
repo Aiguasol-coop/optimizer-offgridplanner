@@ -16,4 +16,4 @@ spec:
         - name: {{ .Values.project.name }}-redis
           image: {{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag}}
           ports:
-            - containerPort: {{ .Values.redis.port }}}
+            - containerPort: {{ .Values.redis.port | int}}

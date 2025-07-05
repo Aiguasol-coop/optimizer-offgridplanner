@@ -20,18 +20,21 @@ spec:
             - -c
             - |
               echo "Waiting for redis..."
-              until nc -z redis 6379; do
+              until nc -z potential-optimizer-redis 6379; do
                 sleep 1
               done
               echo "Redis is up!"
       containers:
       - name: {{ .Values.project.name }}-worker-supply
-        image: {{ .Values.worker-supply.image.repository }}:{{ .Values.worker-supply.image.tag}}
-        imagePullPolicy: {{ .Values.worker-supply.image.pullPolicy }}
+        image: {{ .Values.worker_supply.image.repository }}:{{ .Values.worker_supply.image.tag}}
+        imagePullPolicy: {{ .Values.worker_supply.image.pullPolicy }}
         env:
           - name: CELERY_BROKER_URL
-            value: {{ .Values.worker-supply.CELERY_BROKER_URL }}
+            value: {{ .Values.worker_supply.CELERY_BROKER_URL }}
           - name: CELERY_RESULT_BACKEND
-            value: {{ .Values.worker-supply.CELERY_RESULT_BACKEND }}
+            value: {{ .Values.worker_supply.CELERY_RESULT_BACKEND }}
           - name: CELERY_TASK_NAME
-            value: {{ .Values.worker-supply.CELERY_TASK_NAME }}
+            value: {{ .Values.worker_supply.CELERY_TASK_NAME }}
+      imagePullSecrets:
+        - name: docker-registry-login
+      restartPolicy: Always
