@@ -30,9 +30,13 @@ CELERY_RESULT_BACKEND = os.environ.get(
 )
 
 CELERY_TASK_NAME = os.environ.get("CELERY_TASK_NAME", "grid")
+CELERY_CONCURRENCY = os.environ.get("CELERY_CONCURRENCY", 1)
 
 app = Celery(CELERY_TASK_NAME, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 
+app.conf.update(
+    worker_concurrency=CELERY_CONCURRENCY,
+)
 
 @app.task(name=f"supply.run_simulation")
 def task_supply_opt(simulation_input: dict,) -> dict:

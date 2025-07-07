@@ -1,20 +1,29 @@
 FROM docker.io/python:3.12.9-slim-bookworm
 
+# Install system dependencies required for your app
 RUN apt-get update && \
     apt-get install -y git && \
     apt-get install coinor-cbc -y && \
-    apt-get install graphviz -y
+    apt-get install graphviz -y \
+    # Ensure multiprocessing tools are available
+    && apt-get install -y libffi-dev
 
+# Copy the app code
 COPY . /app
 WORKDIR /app
 
+# Install pip dependencies
 RUN pip install --upgrade pip \
- && pip install -r requirements.txt
+    && pip install -r requirements.txt
 
+# Create a non-root user
 RUN useradd --create-home appuser \
- && chown -R appuser /app
+    && chown -R appuser /app
 USER appuser
 
+# Set environment variable for Celery task name
 ENV CELERY_TASK_NAME=default
+ENV CELERY_CONCURRENCY=4
 
-ENTRYPOINT celery -A tasks worker --loglevel=info --queues=${CELERY_TASK_NAME}
+# Set the entrypoint for the container, running Celery
+ENTRYPOINT ["celery", "-A", "tasks", "worker", "--loglevel=info", "--queues=${CELERY_TASK_NAME}", "--concurrency=${CELERY_CONCURRENCY}"]
