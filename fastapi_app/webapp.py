@@ -9,9 +9,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import StreamingResponse
-from fastapi.responses import JSONResponse
+import fastapi
 import importlib.util
-from fastapi.responses import JSONResponse
 from jsonschema import validate
 
 try:
@@ -61,11 +60,13 @@ def index(request: Request) -> Response:
         },
     )
 
+
 @app.get("/health/liveness", status_code=fastapi.status.HTTP_200_OK)
 async def liveness():
     """Liveness check endpoint."""
     # You can implement any additional checks here (e.g., checking if the app can access a database)
     return {"status": "alive"}
+
 
 @app.post("/sendjson/{queue}")
 async def simulate_json_variable(request: Request, queue: str = "supply"):

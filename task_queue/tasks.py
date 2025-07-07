@@ -35,7 +35,7 @@ CELERY_CONCURRENCY = os.environ.get("CELERY_CONCURRENCY", 1)
 app = Celery(CELERY_TASK_NAME, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 
 app.conf.update(
-    worker_concurrency=CELERY_CONCURRENCY,
+    worker_concurrency=int(CELERY_CONCURRENCY),
 )
 
 @app.task(name=f"supply.run_simulation")

@@ -35,6 +35,8 @@ spec:
             value: {{ .Values.worker_supply.CELERY_RESULT_BACKEND }}
           - name: CELERY_TASK_NAME
             value: {{ .Values.worker_supply.CELERY_TASK_NAME }}
+          - name: CELERY_CONCURRENCY
+            value: {{ .Values.worker_supply.CELERY_CONCURRENCY}}
       imagePullSecrets:
         - name: docker-registry-login
       restartPolicy: Always

@@ -1,6 +1,6 @@
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11
 
-COPY ./fastapi_app /app
+COPY . /app
 WORKDIR /app
 
 # install requirements
