@@ -10,7 +10,7 @@ RUN pip install gunicorn
 
 # avoid running as root user
 RUN useradd --create-home appuser \
- && chown -R appuser /app
+    && chown -R appuser /app
 USER appuser
 
 
@@ -18,4 +18,4 @@ USER appuser
 EXPOSE 5001
 
 # run the app server, the last argument match the app variable in the webapp.py file
-CMD ["uvicorn", "webapp:app", "--host", "0.0.0.0", "--port", "5001", "--proxy-headers"]
+CMD ["uvicorn", "webapp:app", "--app-dir", "/app/", "--host", "0.0.0.0", "--port", "5001", "--proxy-headers"]
