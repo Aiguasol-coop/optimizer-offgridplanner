@@ -32,6 +32,14 @@ spec:
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.api.port | int }}
+          livenessProbe:
+            httpGet:
+              path: /health/liveness
+              port: {{ .Values.api.port | int }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
           env:
             - name: CELERY_BROKER_URL
               value: {{ .Values.api.CELERY_BROKER_URL }}

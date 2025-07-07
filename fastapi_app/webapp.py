@@ -61,6 +61,12 @@ def index(request: Request) -> Response:
         },
     )
 
+@app.get("/health/liveness", status_code=fastapi.status.HTTP_200_OK)
+async def liveness():
+    """Liveness check endpoint."""
+    # You can implement any additional checks here (e.g., checking if the app can access a database)
+    return {"status": "alive"}
+
 @app.post("/sendjson/{queue}")
 async def simulate_json_variable(request: Request, queue: str = "supply"):
     """Receive mvs simulation parameter in json post request and send it to simulator"""
