@@ -12,7 +12,7 @@ services:
     ports:
       - "18080:5001"
     depends_on:
-      - redis
+      - potential-optimizer-redis
     networks:
       #      - caddy_network
       - sim_network
