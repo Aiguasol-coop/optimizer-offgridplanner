@@ -1,0 +1,215 @@
+name: Deploy Test Env
+
+
+on:
+  push:
+    branches:
+      - main
+
+
+jobs:
+  test-and-push-api-image:
+    runs-on: ubuntu-latest
+
+    env:
+      CELERY_BROKER_URL: "redis://potential-optimizer-redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://potential-optimizer-redis:6379/0"
+
+    steps:
+      - name: Check docker-compose version
+        run: docker compose version
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate timestamp tag
+        id: timestamp
+        run: echo "TAG=$(date +'%Y-%m-%dT%H-%M-test')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build test image (tagged but not pushed)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.api.testing
+          push: false
+          load: true
+          tags: dec_potential_optimizer:test
+
+      - name: Start services and check app works
+        run: |
+          docker compose -f docker-compose.github-workflows.yml up -d
+
+          echo "Waiting for app to respond..."
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:18080; then
+              echo "✅ Service responded successfully"
+              break
+            else
+              echo "Waiting... ($i)"
+              sleep 2
+            fi
+          done
+
+          if ! curl -fs http://localhost:18080; then
+            echo "::error::App did not respond after timeout. Dumping logs..."
+            docker compose -f docker-compose.github-workflows.yml logs
+            exit 1
+          fi
+
+      - name: Stop and remove services
+        if: always()
+        run: docker compose -f docker-compose.github-workflows.yml down --volumes
+
+      - name: Push Docker image to Docker Hub
+        if: success()
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.api.testing
+          push: true
+          tags: |
+            aiguasol/dec_potential_optimizer:latest
+            aiguasol/dec_potential_optimizer:${{ steps.timestamp.outputs.TAG }}
+
+  test-and-push-workers-image:
+    runs-on: ubuntu-latest
+    needs: test-and-push-api-image
+
+    env:
+      CELERY_BROKER_URL: "redis://potential-optimizer-redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://potential-optimizer-redis:6379/0"
+      CELERY_TASK_NAME: "supply"
+      CELERY_CONCURRENCY: 4
+
+    steps:
+      - name: Check docker-compose version
+        run: docker compose version
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate timestamp tag
+        id: timestamp
+        run: echo "TAG=$(date +'%Y-%m-%dT%H-%M-test')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build test image (tagged but not pushed)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.workers.testing
+          push: false
+          load: true
+          tags: dec_celery_worker:test
+
+      - name: Start services and check app works
+        run: |
+          docker compose -f docker-compose.github-workflows.yml up -d
+
+          echo "Waiting for app to respond..."
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:18080; then
+              echo "✅ Service responded successfully"
+              break
+            else
+              echo "Waiting... ($i)"
+              sleep 2
+            fi
+          done
+
+          if ! curl -fs http://localhost:18080; then
+            echo "::error::App did not respond after timeout. Dumping logs..."
+            docker compose -f docker-compose.github-workflows.yml logs
+            exit 1
+          fi
+
+      - name: Stop and remove services
+        if: always()
+        run: docker compose -f docker-compose.github-workflows.yml down --volumes
+
+      - name: Push Docker image to Docker Hub
+        if: success()
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.api.testing
+          push: true
+          tags: |
+            aiguasol/dec_celery_worker:latest
+            aiguasol/dec_celery_worker:${{ steps.timestamp.outputs.TAG }}
+
+  inject-docker-registry-secret-to-kb:
+    runs-on: ubuntu-latest
+    needs: test-and-push-workers-image
+
+    steps:
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p .kube
+          echo "${{ secrets.KUBECONFIG_TEST_ENV_FILE }}" > .kube/config
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Delete Existing Docker regsitry Secret (if exists)
+        run: |
+          kubectl delete secret docker-registry-login \
+            --namespace dec \
+            --ignore-not-found \
+            --kubeconfig=.kube/config
+
+      - name: Create Docker Registry Secret
+        run: |
+          kubectl create secret docker-registry docker-registry-login \
+            --docker-server=https://index.docker.io/v1/ \
+            --docker-username="${{ secrets.DOCKERHUB_USERNAME }}" \
+            --docker-password="${{ secrets.DOCKERHUB_TOKEN }}" \
+            --namespace=dec \
+            --kubeconfig=.kube/config
+
+  helm-upgrade:
+    runs-on: ubuntu-latest
+    needs: inject-docker-registry-secret-to-kb
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.14.0'
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p .kube
+          echo "${{ secrets.KUBECONFIG_TEST_ENV_FILE }}" > .kube/config
+          chmod 600 .kube/config
+
+      - name: Run Helm upgrade
+        run: |
+          helm upgrade dec-potential-minigrid-explorer-chart ./charts/dec-potential-optimizer-chart \
+            --install \
+            --namespace dec \
+            --values ./charts/dec-potential-optimizer-chart/values.yaml \
+            --set-string forceRedeploy=$(date +%s) \
+            --kubeconfig .kube/config
