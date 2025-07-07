@@ -9,6 +9,8 @@ spec:
       app: {{ .Values.project.name }}-worker-supply
   template:
     metadata: 
+      annotations:
+        redeploy-timestamp: "{{ .Values.forceRedeploy }}"
       labels: 
         app: {{ .Values.project.name }}-worker-supply
     spec:

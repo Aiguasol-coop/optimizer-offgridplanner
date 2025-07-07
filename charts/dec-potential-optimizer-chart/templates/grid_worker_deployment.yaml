@@ -8,7 +8,9 @@ spec:
     matchLabels: 
       app: {{ .Values.project.name }}-worker-grid
   template:
-    metadata: 
+    metadata:
+      annotations:
+        redeploy-timestamp: "{{ .Values.forceRedeploy }}"
       labels: 
         app: {{ .Values.project.name }}-worker-grid
     spec:

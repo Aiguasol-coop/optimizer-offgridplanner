@@ -1,0 +1,54 @@
+version: "3"
+services:
+  web:
+    environment:
+      - CELERY_BROKER_URL=redis://potential-optimizer-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://potential-optimizer-redis:6379/0
+    build:
+      # `context` should be a path to a directory containing a Dockerfile
+      context: .
+      dockerfile: Dockerfile.api.testing
+    restart: unless-stopped
+    ports:
+      - "18080:5001"
+    depends_on:
+      - redis
+    networks:
+      #      - caddy_network
+      - sim_network
+  worker-supply:
+    environment:
+      - CELERY_BROKER_URL=redis://potential-optimizer-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://potential-optimizer-redis:6379/0
+      - CELERY_TASK_NAME=supply
+    build:
+      # context should be the name of the folder which define the tasks
+      context: .
+      dockerfile: Dockerfile.workers.testing
+    depends_on:
+      - potential-optimizer-redis
+    networks:
+      - sim_network
+  worker-grid:
+    environment:
+      - CELERY_BROKER_URL=redis://potential-optimizer-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://potential-optimizer-redis:6379/0
+      - CELERY_TASK_NAME=grid
+    build:
+      # context should be the name of the folder which define the tasks
+      context: .
+      dockerfile: Dockerfile.workers.testing
+    depends_on:
+      - potential-optimizer-redis
+    networks:
+      - sim_network
+  potential-optimizer-redis:
+    image: redis
+    networks:
+      - sim_network
+
+networks:
+  #  caddy_network:
+  #    external:
+  #      name: docker_caddy_network
+  sim_network:

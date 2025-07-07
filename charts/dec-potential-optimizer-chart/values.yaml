@@ -1,0 +1,45 @@
+# PROJECT CONFIG
+project:
+  name: potential-optimizer
+  namespace: dec
+
+# API CONFIG
+api:
+  port: "5001"
+  image:  
+    repository: aiguasol/dec_potential_optimizer
+    pullPolicy: Always
+    tag: latest
+  CELERY_BROKER_URL: "redis://potential-optimizer-redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://potential-optimizer-redis:6379/0"
+
+# REDIS CONFIG
+redis:
+  image:  
+    repository: redis
+    pullPolicy: Always
+    tag: latest
+  port: "6379"
+
+# WORKER CONFIG
+# The workers are configured to use the same image, but with different environment variables
+# to specify the task they will handle.
+worker-supply:
+  image:  
+    repository: aiguasol/dec_celery_worker
+    pullPolicy: Always
+    tag: latest
+  CELERY_BROKER_URL: "redis://potential-optimizer-redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://potential-optimizer-redis:6379/0"
+  CELERY_TASK_NAME: "supply"
+  CELERY_CONCURRENCY: 4
+
+worker-grid:
+  image:  
+    repository: aiguasol/dec_celery_worker
+    pullPolicy: Always
+    tag: latest
+  CELERY_BROKER_URL: "redis://potential-optimizer-redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://potential-optimizer-redis:6379/0"
+  CELERY_TASK_NAME: "grid"
+  CELERY_CONCURRENCY: 4
