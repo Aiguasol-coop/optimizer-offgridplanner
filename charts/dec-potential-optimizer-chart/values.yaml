@@ -24,7 +24,7 @@ redis:
 # WORKER CONFIG
 # The workers are configured to use the same image, but with different environment variables
 # to specify the task they will handle.
-worker-supply:
+worker_supply:
   image:  
     repository: aiguasol/dec_celery_worker
     pullPolicy: Always
@@ -34,7 +34,7 @@ worker-supply:
   CELERY_TASK_NAME: "supply"
   CELERY_CONCURRENCY: 4
 
-worker-grid:
+worker_grid:
   image:  
     repository: aiguasol/dec_celery_worker
     pullPolicy: Always
