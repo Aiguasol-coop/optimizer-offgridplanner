@@ -43,3 +43,5 @@ worker_grid:
   CELERY_RESULT_BACKEND: "redis://potential-optimizer-redis:6379/0"
   CELERY_TASK_NAME: "grid"
   CELERY_CONCURRENCY: "4"
+
+
