@@ -149,7 +149,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.api.testing
+          file: ./Dockerfile.workers.testing
           push: true
           tags: |
             aiguasol/dec_celery_worker:latest
