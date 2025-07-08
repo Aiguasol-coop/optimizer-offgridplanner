@@ -207,7 +207,7 @@ jobs:
 
       - name: Run Helm upgrade
         run: |
-          helm upgrade dec-potential-minigrid-explorer-chart ./charts/dec-potential-optimizer-chart \
+          helm upgrade dec-potential-optimizer-chart ./charts/dec-potential-optimizer-chart \
             --install \
             --namespace dec \
             --values ./charts/dec-potential-optimizer-chart/values.yaml \
