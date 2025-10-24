@@ -134,7 +134,7 @@ class GridOptimizer:
         ].copy()
         self.pole_max_connection = self.grid_design_dict["pole"]["max_n_connections"]
         self.grid_mst = pd.DataFrame({}, dtype=np.dtype(float))
-        self.max_levelized_grid_cost = self.grid_design_dict["shs"]["max_grid_cost"]
+        self.max_levelized_grid_cost = self.grid_design_dict["shs"]["max_grid_cost"] / 1000 # convert to currency/Wh
         self.connection_cable_max_length = self.grid_design_dict["connection_cable"][
             "max_length"
         ]
@@ -222,7 +222,7 @@ class GridOptimizer:
         return results
 
     def _process_nodes(self):
-        nodes_df = self.nodes.reset_index(drop=True)
+        nodes_df = self.nodes.reset_index(names=["label"])
         nodes_df = nodes_df.drop(
             labels=[
                 "x",
@@ -257,7 +257,7 @@ class GridOptimizer:
         return nodes_df.reset_index(drop=True).to_dict(orient="list")
 
     def _process_links(self):
-        links_df = self.links.reset_index(drop=True)
+        links_df = self.links.reset_index(names=["label"])
         links_df = links_df.drop(
             labels=[
                 "x_from",
@@ -266,8 +266,6 @@ class GridOptimizer:
                 "y_to",
                 "n_consumers",
                 "total_power",
-                "from_node",
-                "to_node",
             ],
             axis=1,
         )
@@ -285,8 +283,8 @@ class GridOptimizer:
         :return:
         """
         nodes_df = self.nodes
-        nodes_df.loc[nodes_df["shs_options"] == 2, "is_connected"] = False  # noqa: PLR2004 -> TODO check what shs_options=2 means
         nodes_df["is_connected"] = True
+        nodes_df.loc[nodes_df["shs_options"] == 2, "is_connected"] = False  # noqa: PLR2004 -> TODO check what shs_options=2 means
         nodes_df.index = nodes_df.index.astype(str)
         nodes_df = nodes_df[nodes_df["node_type"].isin(["consumer", "power-house"])]
         power_houses = nodes_df.loc[nodes_df["node_type"] == "power-house"]
@@ -694,8 +692,8 @@ class GridOptimizer:
         self.links.loc[label, "length"] = length
         self.links.loc[label, "n_consumers"] = 0
         self.links.loc[label, "total_power"] = 0
-        self.links.loc[label, "from_node"] = ""
-        self.links.loc[label, "to_node"] = ""
+        self.links.loc[label, "from_node"] = label_node_from
+        self.links.loc[label, "to_node"] = label_node_to
 
     def total_length_distribution_cable(self):
         """
@@ -820,15 +818,16 @@ class GridOptimizer:
             links.index.str.extract(r",\s*([^,]+)\s*\)$")[0].str.strip().tolist()
         )
         connection_links = links[links["link_type"] == "connection"].copy()
+        distribution_links = links[links["link_type"] == "distribution"].copy()
         for pole_idx in poles.index:
             n_distribution = len(
-                self.distribution_links[
-                    self.distribution_links["from_node"] == pole_idx
+                distribution_links[
+                    distribution_links["from_node"] == pole_idx
                 ].index,
             )
             n_distribution += len(
-                self.distribution_links[
-                    self.distribution_links["to_node"] == pole_idx
+                distribution_links[
+                    distribution_links["to_node"] == pole_idx
                 ].index,
             )
             self.nodes.loc[pole_idx, "n_distribution_links"] = n_distribution
@@ -1399,7 +1398,33 @@ class GridOptimizer:
             mask,
             ["to_node", "from_node"],
         ].to_numpy()
+       
+        # Rebuild indexes to match final from/to relationships
+        links.index = pd.Index(
+            [f"({f}, {t})" for f, t in links[["from_node", "to_node"]].to_numpy()],
+            name="label",
+        )
+
+        # Sync endpoint coordinates with the final from/to nodes ---
+        node_lat = self.nodes["latitude"]
+        node_lon = self.nodes["longitude"]
+        node_x = self.nodes["x"]
+        node_y = self.nodes["y"]
+
+        # from_* columns
+        links["lat_from"] = links["from_node"].map(node_lat)
+        links["lon_from"] = links["from_node"].map(node_lon)
+        links["x_from"] = links["from_node"].map(node_x)
+        links["y_from"] = links["from_node"].map(node_y)
+
+        # to_* columns
+        links["lat_to"] = links["to_node"].map(node_lat)
+        links["lon_to"] = links["to_node"].map(node_lon)
+        links["x_to"] = links["to_node"].map(node_x)
+        links["y_to"] = links["to_node"].map(node_y)
+       
         self.links = links.copy(deep=True)
+        self.distribution_links = self.links[links["link_type"] == "distribution"].copy()
 
     # ------------ CONNECT NODES USING TREE-STAR SHAPE ------------#
     def connect_grid_consumers(self):
